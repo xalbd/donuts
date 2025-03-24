@@ -7,6 +7,8 @@ const create = db.query(
    guild TEXT PRIMARY KEY,
    channel TEXT,
    users TEXT NOT NULL DEFAULT "[]",
-   last_chat TEXT);`
+   timezone TEXT, 
+   next_chat TEXT,
+   active INTEGER NOT NULL DEFAULT 0);`
 );
 create.run();
