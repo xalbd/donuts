@@ -3,7 +3,8 @@ import {
   EmbedBuilder,
   SlashCommandBuilder,
 } from "discord.js";
-import { getRecord } from "../db/queries";
+import { createRecord, getRecord } from "../db/queries";
+import { DateTime } from "luxon";
 
 export default {
   data: new SlashCommandBuilder()
@@ -15,6 +16,7 @@ export default {
       console.error("config: guild ID could not be found");
       return;
     }
+    createRecord(guildId); // create record in database just to be safe
 
     const config = getRecord(guildId);
     const statusEmbed = new EmbedBuilder()
@@ -22,7 +24,9 @@ export default {
       .setDescription(
         config.active
           ? "There is a donut chat happening right now!"
-          : "There is no active donut chat."
+          : config.channel && config.timezone && config.next_chat
+          ? "There is no active donut chat."
+          : "Donut chats are not ready to begin. Please ensure that all settings listed below are configured."
       )
       .addFields(
         {
@@ -37,12 +41,19 @@ export default {
           value: `${config.users.length}`,
           inline: true,
         },
-        { name: "Timezone", value: config.timezone },
         {
-          name: "Next Donut Chat",
-          value: config.next_chat
-            ? `${new Date(config.next_chat).toLocaleDateString()}`
-            : "N/A, configure using /config schedule",
+          name: "Time zone",
+          value: config.timezone ?? "N/A, configure using /config timezone",
+        },
+        {
+          name: "Next Scheduled Donut Chat",
+          value: config.timezone
+            ? config.next_chat
+              ? `${DateTime.fromISO(config.next_chat, {
+                  zone: config.timezone,
+                }).toLocaleString(DateTime.DATETIME_MED)}`
+              : "N/A, configure using /config schedule"
+            : "Please configure the time zone using /config timezone",
         }
       )
       .setFooter({

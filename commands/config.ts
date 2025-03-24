@@ -4,10 +4,9 @@ import {
   ChannelType,
   ChatInputCommandInteraction,
   EmbedBuilder,
-  ModalBuilder,
   SlashCommandBuilder,
 } from "discord.js";
-import { getRecord, setChannel, setTimezone } from "../db/queries";
+import { getRecord, setChannel, setNextChat, setTimezone } from "../db/queries";
 import { DateTime } from "luxon";
 
 export default {
@@ -34,6 +33,37 @@ export default {
         .setName("schedule")
         .setDescription(
           "Set the time and day of the week donut chats are started"
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("day")
+            .setDescription("Day of the week to send donut chats out")
+            .setRequired(true)
+            .addChoices(
+              { name: "Monday", value: 1 },
+              { name: "Tuesday", value: 2 },
+              { name: "Wednesday", value: 3 },
+              { name: "Thursday", value: 4 },
+              { name: "Friday", value: 5 },
+              { name: "Saturday", value: 6 },
+              { name: "Sunday", value: 7 }
+            )
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("hour")
+            .setDescription(
+              "Hour of the day (24hr format) to send donut chats out"
+            )
+            .setMinValue(0)
+            .setMaxValue(23)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("minute")
+            .setDescription("Minute of the hour to send donut chats out")
+            .setMinValue(0)
+            .setMaxValue(59)
         )
     ),
   async execute(interaction: ChatInputCommandInteraction) {
@@ -120,9 +150,9 @@ export default {
 
         if (!testTZ.isValid) {
           const timezoneFailureEmbed = new EmbedBuilder()
-            .setTitle("Timezone could not be parsed.")
+            .setTitle("Time zone could not be parsed.")
             .setDescription(
-              "Provided timezone is required to be in IANA format. You can look up your timezone up using [this tool](https://zones.arilyn.cc/)."
+              "Provided time zone is required to be in IANA format. You can look up your time zone up using [this tool](https://zones.arilyn.cc/)."
             )
             .setColor("Red");
           await interaction.reply({ embeds: [timezoneFailureEmbed] });
@@ -130,9 +160,52 @@ export default {
           const tzIANA = testTZ.zone.name;
           setTimezone(guildId, tzIANA);
           const timezoneSuccessEmbed = new EmbedBuilder()
-            .setTitle(`The donut chat timezone was changed to ${tzIANA}!`)
+            .setTitle(`The donut chat time zone was changed to ${tzIANA}!`)
             .setColor("Green");
           await interaction.reply({ embeds: [timezoneSuccessEmbed] });
+        }
+        break;
+      case "schedule":
+        if (config.timezone == null) {
+          const timezoneNotConfiguredEmbed = new EmbedBuilder()
+            .setTitle("Please configure the time zone first.")
+            .setDescription(
+              "The bot needs to know the appropriate time zone to schedule donut chats for. Use the /config timezone to configure the desired time zone."
+            )
+            .setColor("Red");
+          await interaction.reply({ embeds: [timezoneNotConfiguredEmbed] });
+        } else {
+          const day = interaction.options.getInteger("day");
+          const hour = interaction.options.getInteger("hour") ?? 9;
+          const minute = interaction.options.getInteger("minute") ?? 0;
+
+          console.log(day, hour, minute);
+
+          let desired = DateTime.local({ zone: config.timezone });
+          desired = desired.set({
+            hour: hour,
+            minute: minute,
+          });
+          while (desired < DateTime.now() || desired.weekday != day) {
+            desired = desired.plus({ days: 1 });
+            console.log(desired);
+          }
+
+          setNextChat(guildId, desired.toISO());
+
+          const scheduleEmbed = new EmbedBuilder()
+            .setTitle("Donut chats are happening!")
+            .setDescription(
+              `Weekly donut chats are beginning, starting on ${desired.toLocaleString(
+                DateTime.DATETIME_MED
+              )}!`
+            )
+            .setFooter({
+              text: "You can start this week's early by using the /config force command as an Administrator",
+            })
+            .setColor("Green");
+
+          await interaction.reply({ embeds: [scheduleEmbed] });
         }
         break;
     }

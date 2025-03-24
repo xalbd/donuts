@@ -23,7 +23,7 @@ export function getRecord(guildId: string): Record {
     channel: res.channel,
     users: JSON.parse(res.users) ?? [],
     timezone: res.timezone,
-    next_chat: Date.parse(res.next_chat),
+    next_chat: res.next_chat,
     active: !!res.active,
   };
 }
@@ -50,4 +50,12 @@ export function setTimezone(guildId: string, timezone: string) {
     SET timezone = $t
     WHERE guild = $g`);
   query.run({ $t: timezone, $g: guildId });
+}
+
+export function setNextChat(guildId: string, nextChat: string) {
+  const query = db.query(`
+    UPDATE info
+    SET next_chat = $n
+    WHERE guild = $g`);
+  query.run({ $n: nextChat, $g: guildId });
 }
