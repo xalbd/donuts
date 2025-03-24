@@ -33,3 +33,11 @@ export function setChannel(guildId: string, channelId: string) {
     WHERE guild = $g`);
   query.run({ $g: guildId, $c: channelId });
 }
+
+export function updateUsers(guildId: string, users: string[]) {
+  const query = db.query(`
+    UPDATE info
+    SET users = $u
+    WHERE guild = $g`);
+  query.run({ $u: JSON.stringify(users), $g: guildId });
+}
