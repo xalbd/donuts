@@ -4,6 +4,7 @@ import {
   ChannelType,
   ChatInputCommandInteraction,
   EmbedBuilder,
+  PermissionFlagsBits,
   SlashCommandBuilder,
 } from "discord.js";
 import { getRecord, setChannel, setNextChat, setTimezone } from "../db/queries";
@@ -13,6 +14,7 @@ export default {
   data: new SlashCommandBuilder()
     .setName("config")
     .setDescription("Set up Donut Chats")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand((subcommand) =>
       subcommand
         .setName("channel")
@@ -166,20 +168,18 @@ export default {
         }
         break;
       case "schedule":
-        if (config.timezone == null) {
-          const timezoneNotConfiguredEmbed = new EmbedBuilder()
-            .setTitle("Please configure the time zone first.")
+        if (config.timezone == null || config.channel == null) {
+          const notConfiguredEmbed = new EmbedBuilder()
+            .setTitle("Please configure the channel and time zone first.")
             .setDescription(
-              "The bot needs to know the appropriate time zone to schedule donut chats for. Use the /config timezone to configure the desired time zone."
+              "The bot needs to know the appropriate time zone to schedule donut chats for as well as where to put the donut chats. Use the /config timezone and /config channel commands to configure these two settings respectively."
             )
             .setColor("Red");
-          await interaction.reply({ embeds: [timezoneNotConfiguredEmbed] });
+          await interaction.reply({ embeds: [notConfiguredEmbed] });
         } else {
           const day = interaction.options.getInteger("day");
           const hour = interaction.options.getInteger("hour") ?? 9;
           const minute = interaction.options.getInteger("minute") ?? 0;
-
-          console.log(day, hour, minute);
 
           let desired = DateTime.local({ zone: config.timezone });
           desired = desired.set({
@@ -188,7 +188,6 @@ export default {
           });
           while (desired < DateTime.now() || desired.weekday != day) {
             desired = desired.plus({ days: 1 });
-            console.log(desired);
           }
 
           setNextChat(guildId, desired.toISO());

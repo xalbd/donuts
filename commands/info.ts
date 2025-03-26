@@ -22,7 +22,7 @@ export default {
     const statusEmbed = new EmbedBuilder()
       .setTitle(`Config for ${interaction.guild?.name}`)
       .setDescription(
-        config.active
+        config.threads.length > 0
           ? "There is a donut chat happening right now!"
           : config.channel && config.timezone && config.next_chat
           ? "There is no active donut chat."
@@ -53,7 +53,7 @@ export default {
                   zone: config.timezone,
                 }).toLocaleString(DateTime.DATETIME_MED)}`
               : "N/A, configure using /config schedule"
-            : "Please configure the time zone using /config timezone",
+            : "Please configure the time zone using /config timezone first.",
         }
       )
       .setFooter({

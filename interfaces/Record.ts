@@ -4,5 +4,6 @@ export interface Record {
   users: string[];
   timezone: string; // IANA timezone
   next_chat: string; // Next donut chat time stored in ISO 8601; increments by a week at a time
-  active: boolean;
+  offset: number;
+  threads: string[];
 }

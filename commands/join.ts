@@ -3,7 +3,7 @@ import {
   EmbedBuilder,
   SlashCommandBuilder,
 } from "discord.js";
-import { getRecord, updateUsers } from "../db/queries";
+import { getRecord, setUsers } from "../db/queries";
 
 export default {
   data: new SlashCommandBuilder()
@@ -21,7 +21,7 @@ export default {
     const users = getRecord(guildId).users;
     if (!users.includes(interaction.user.id)) {
       users.push(interaction.user.id);
-      updateUsers(guildId, users);
+      setUsers(guildId, users);
 
       embed
         .setTitle(

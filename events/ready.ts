@@ -1,5 +1,6 @@
 import { Client, Events } from "discord.js";
 import deploy from "../util/deploy";
+import { createChats } from "../util/donut";
 
 export default {
   name: Events.ClientReady,
@@ -7,5 +8,10 @@ export default {
   execute(client: Client) {
     console.log(`Client ready and logged in as ${client.user?.tag}`);
     deploy(client);
+
+    createChats(client);
+    setInterval(() => {
+      createChats(client);
+    }, 60 * 1000); // just do a dumb check every 60 seconds
   },
 };
