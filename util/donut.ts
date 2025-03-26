@@ -103,12 +103,14 @@ export async function startDonutChat(client: Client, r: Record) {
   });
 
   // update next chat time and keep track of what threads were used
-  setNextChat(
-    r.guild,
-    DateTime.fromISO(r.next_chat, { zone: r.timezone })
-      .plus({ days: 7 })
-      .toISO() ?? ""
-  );
+  if (DateTime.fromISO(r.next_chat) < DateTime.now()) {
+    setNextChat(
+      r.guild,
+      DateTime.fromISO(r.next_chat, { zone: r.timezone })
+        .plus({ days: 7 })
+        .toISO() ?? ""
+    );
+  }
   setThreads(r.guild, threads);
 }
 
