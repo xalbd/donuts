@@ -200,7 +200,7 @@ export default {
               )}!`
             )
             .setFooter({
-              text: "You can start this week's early by using the /config force command as an Administrator",
+              text: "You can start this week's early by using the /force command as an Administrator",
             })
             .setColor("Green");
 
