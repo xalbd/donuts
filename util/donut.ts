@@ -5,12 +5,7 @@ import {
   ChannelType,
   ThreadAutoArchiveDuration,
 } from "discord.js";
-import {
-  getScheduledServers,
-  incrementOffset,
-  setNextChat,
-  setThreads,
-} from "../db/queries";
+import { getScheduledServers, setNextChat, setThreads } from "../db/queries";
 import { DateTime } from "luxon";
 
 export async function createChats(client: Client) {
@@ -50,11 +45,18 @@ export async function createChats(client: Client) {
       channel.send({ embeds: [enoughEmbed] });
     }
 
-    // assign people based off of current offset and create threads
-    // NOTE: this algorithm does not work at all at the moment
-    for (let i = 0; i < r.users.length; i++) {
-      const j = (i + r.offset) % r.users.length;
+    // pair people up randomly with a group of 3 if necessary
+    // note: this has a really high chance of pairing the same people up multiple times in a row
+    const users = r.users.sort(() => Math.random() - 0.5);
+    const groups = [];
+    for (let i = 0; i < users.length - 1; i += 2) {
+      groups.push(users.slice(i, i + 2));
+    }
+    if (groups.length % 2 != 0) {
+      groups[groups.length - 1].push(users[users.length - 1]);
+    }
 
+    groups.forEach(async (group) => {
       const thread = await channel.threads.create({
         name: `Donut Chat - ${DateTime.now().toLocaleString(
           DateTime.DATE_MED
@@ -62,22 +64,27 @@ export async function createChats(client: Client) {
         autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
         type: ChannelType.PrivateThread,
       });
-      threads.push(thread.id);
       try {
-        thread.members.add(r.users[i]);
-        thread.members.add(r.users[j]);
+        group.forEach(async (u) => {
+          await thread.members.add(u);
+        });
       } catch {
         console.log(
           "creating chats: some user was unable to be added to a thread"
         );
       }
+      threads.push(thread.id);
       await thread.join();
+
+      const pings = group.map((u) => `<@${u}>`);
+      const pingString =
+        pings.slice(0, group.length - 1).join(", ") +
+        " and " +
+        group[group.length - 1];
 
       const introductionEmbed = new EmbedBuilder()
         .setTitle("Let's donut!")
-        .setDescription(
-          `Welcome, <@${r.users[i]}> and <@${r.users[j]}>! :doughnut: :speaking_head:`
-        )
+        .setDescription(`Welcome, ${pingString}!  :doughnut: :speaking_head:`)
         .addFields(
           {
             name: "How does this work?",
@@ -94,10 +101,9 @@ export async function createChats(client: Client) {
         })
         .setColor("Blue");
       await thread.send({ embeds: [introductionEmbed] });
-    }
+    });
 
-    // update offset/next chat time and keep track of what threads were used
-    incrementOffset(r.guild);
+    // update next chat time and keep track of what threads were used
     setNextChat(
       r.guild,
       DateTime.fromISO(r.next_chat, { zone: r.timezone })

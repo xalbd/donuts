@@ -17,7 +17,6 @@ export function parseRecord(res: any): Record {
     users: JSON.parse(res.users) ?? [],
     timezone: res.timezone,
     next_chat: res.next_chat,
-    offset: res.number,
     threads: JSON.parse(res.threads) ?? [],
   };
 }
@@ -62,14 +61,6 @@ export function setNextChat(guildId: string, nextChat: string) {
     SET next_chat = $n
     WHERE guild = $g`);
   query.run({ $n: nextChat, $g: guildId });
-}
-
-export function incrementOffset(guildId: string) {
-  const query = db.query(`
-    UPDATE info
-    SET offset = offset + 1
-    WHERE guild = $g`);
-  query.run({ $g: guildId });
 }
 
 export function setThreads(guildId: string, threads: string[]) {
