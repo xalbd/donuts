@@ -1,9 +1,9 @@
 export interface Record {
   guild: string;
-  channel: string;
+  channel: string | null;
   users: string[];
-  timezone: string; // IANA timezone
-  next_chat: string; // Next donut chat time stored in ISO 8601; increments by a week at a time
+  timezone: string | null; // IANA timezone
+  next_chat: string | null; // Next donut chat time stored in ISO 8601; increments by a week at a time
   threads: string[];
   completed: string[];
 }
