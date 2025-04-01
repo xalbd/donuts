@@ -18,6 +18,7 @@ export function parseRecord(res: any): Record {
     timezone: res.timezone,
     next_chat: res.next_chat,
     threads: JSON.parse(res.threads) ?? [],
+    completed: JSON.parse(res.completed) ?? [],
   };
 }
 
@@ -69,6 +70,14 @@ export function setThreads(guildId: string, threads: string[]) {
     SET threads = $t
     WHERE guild = $g`);
   query.run({ $t: JSON.stringify(threads), $g: guildId });
+}
+
+export function setCompleted(guildId: string, completed: string[]) {
+  const query = db.query(`
+    UPDATE info
+    SET completed = $c
+    WHERE guild = $g`);
+  query.run({ $c: JSON.stringify(completed), $g: guildId });
 }
 
 export function getScheduledServers(): Record[] {

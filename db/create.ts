@@ -9,6 +9,7 @@ const create = db.query(
    users TEXT NOT NULL DEFAULT "[]",
    timezone TEXT, 
    next_chat TEXT,
-   threads TEXT NOT NULL DEFAULT "[]");`
+   threads TEXT NOT NULL DEFAULT "[]",
+   completed TEXT NOT NULL DEFAULT "[]);`
 );
 create.run();

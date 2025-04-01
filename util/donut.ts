@@ -5,7 +5,12 @@ import {
   ChannelType,
   ThreadAutoArchiveDuration,
 } from "discord.js";
-import { getScheduledServers, setNextChat, setThreads } from "../db/queries";
+import {
+  getScheduledServers,
+  setCompleted,
+  setNextChat,
+  setThreads,
+} from "../db/queries";
 import { DateTime } from "luxon";
 import type { Record } from "../interfaces/Record";
 
@@ -15,6 +20,26 @@ export async function startDonutChat(client: Client, r: Record) {
   }
 
   const channel = client.channels.cache.get(r.channel) as TextChannel;
+
+  // send some statistics about last week if anything happened
+  if (r.completed.length > 0) {
+    const finishedEmbed = new EmbedBuilder()
+      .setTitle("Last week's donut chats just ended!")
+      .setColor("Blue");
+
+    const porportion = r.completed.length / r.threads.length;
+    const finishedMessage =
+      porportion < 1 / 3
+        ? `Good start! ${r.completed.length} out of ${r.threads.length} donut chats were finished this week. Let's get those numbers up!`
+        : porportion < 2 / 3
+        ? `${r.completed.length} out of ${r.threads.length} donut chats were finished this week! Keep it up!`
+        : `Amazing job! ${r.completed.length} out of ${r.threads.length} donut chats were finished this week!`;
+
+    finishedEmbed.setDescription(finishedMessage);
+
+    channel.send({ embeds: [finishedEmbed] });
+  }
+
   if (r.users.length < 1) {
     const notEnoughEmbed = new EmbedBuilder()
       .setTitle("A donut chat was scheduled but not enough people joined.")
@@ -55,7 +80,7 @@ export async function startDonutChat(client: Client, r: Record) {
   }
 
   const threads: string[] = [];
-  groups.forEach(async (group) => {
+  for (const group of groups) {
     // create a thread for each group
     const thread = await channel.threads.create({
       name: `Donut Chat - ${DateTime.now().toLocaleString(DateTime.DATE_MED)}`,
@@ -93,6 +118,11 @@ export async function startDonutChat(client: Client, r: Record) {
         {
           name: "What should we talk about?",
           value: "Insert icebreaker here...",
+        },
+        {
+          name: "We chatted! What do I do?",
+          value:
+            "Use the /chatted slash command to mark this donut chat as complete!",
         }
       )
       .setFooter({
@@ -100,7 +130,7 @@ export async function startDonutChat(client: Client, r: Record) {
       })
       .setColor("Blue");
     await thread.send({ embeds: [introductionEmbed] });
-  });
+  }
 
   // update next chat time and keep track of what threads were used
   if (DateTime.fromISO(r.next_chat) < DateTime.now()) {
@@ -111,7 +141,10 @@ export async function startDonutChat(client: Client, r: Record) {
         .toISO() ?? ""
     );
   }
+
+  console.log("setting threads to", threads);
   setThreads(r.guild, threads);
+  setCompleted(r.guild, []);
 }
 
 export async function startScheduledDonutChats(client: Client) {
