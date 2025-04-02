@@ -83,6 +83,9 @@ export default {
           .setDescription(
             "Select the channel where donut chat threads will be created. The bot must be able to send messages and create private threads in the selected channel."
           )
+          .setFooter({
+            text: "Hint: type the name of your desired channel if you don't see it in the dropdown!",
+          })
           .setColor("Blue");
 
         const channelSelect = new ChannelSelectMenuBuilder()
