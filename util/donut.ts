@@ -40,7 +40,7 @@ export async function startDonutChat(client: Client, r: Record) {
     channel.send({ embeds: [finishedEmbed] });
   }
 
-  if (r.users.length < 1) {
+  if (r.users.length < 2) {
     const notEnoughEmbed = new EmbedBuilder()
       .setTitle("A donut chat was scheduled but not enough people joined.")
       .setDescription(
@@ -75,7 +75,7 @@ export async function startDonutChat(client: Client, r: Record) {
   for (let i = 0; i < users.length - 1; i += 2) {
     groups.push(users.slice(i, i + 2));
   }
-  if (groups.length % 2 != 0) {
+  if (users.length % 2 != 0) {
     groups[groups.length - 1].push(users[users.length - 1]);
   }
 
@@ -133,7 +133,11 @@ export async function startDonutChat(client: Client, r: Record) {
   }
 
   // update next chat time and keep track of what threads were used
-  if (DateTime.fromISO(r.next_chat) < DateTime.now()) {
+  if (
+    r.next_chat &&
+    r.timezone &&
+    DateTime.fromISO(r.next_chat ?? 0) < DateTime.now()
+  ) {
     setNextChat(
       r.guild,
       DateTime.fromISO(r.next_chat, { zone: r.timezone })
