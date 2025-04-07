@@ -202,6 +202,10 @@ export default {
                 DateTime.DATETIME_MED
               )}!`
             )
+            .setFields({
+              name: "I want to join!",
+              value: "Use the /join command!",
+            })
             .setFooter({
               text: "You can start this week's early by using the /force command as an Administrator",
             })

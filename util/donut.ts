@@ -146,7 +146,6 @@ export async function startDonutChat(client: Client, r: Record) {
     );
   }
 
-  console.log("setting threads to", threads);
   setThreads(r.guild, threads);
   setCompleted(r.guild, []);
 }
