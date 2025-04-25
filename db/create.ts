@@ -10,6 +10,7 @@ const create = db.query(
    timezone TEXT, 
    next_chat TEXT,
    threads TEXT NOT NULL DEFAULT "[]",
-   completed TEXT NOT NULL DEFAULT "[]");`
+   completed TEXT NOT NULL DEFAULT "[]",
+   history TEXT NOT NULL DEFAULT "[]");`
 );
 create.run();

@@ -8,6 +8,7 @@ import {
 import {
   getScheduledServers,
   setCompleted,
+  setHistory,
   setNextChat,
   setThreads,
 } from "../db/queries";
@@ -68,16 +69,9 @@ export async function startDonutChat(client: Client, r: Record) {
     channel.send({ embeds: [enoughEmbed] });
   }
 
-  // pair people up randomly with a group of 3 if necessary
-  // note: this has a really high chance of pairing the same people up multiple times in a row
-  const users = r.users.sort(() => Math.random() - 0.5);
-  const groups = [];
-  for (let i = 0; i < users.length - 1; i += 2) {
-    groups.push(users.slice(i, i + 2));
-  }
-  if (users.length % 2 != 0) {
-    groups[groups.length - 1].push(users[users.length - 1]);
-  }
+  // create a grouping by trying 100 times and picking the best one
+  // this is really brute but probably fine for now
+  const groups = createHeuristicGrouping(r.users, r.history, 100);
 
   const threads: string[] = [];
   for (const group of groups) {
@@ -148,6 +142,11 @@ export async function startDonutChat(client: Client, r: Record) {
 
   setThreads(r.guild, threads);
   setCompleted(r.guild, []);
+
+  // update history with the new groups
+  const newHistory = r.history;
+  newHistory.push(groups);
+  setHistory(r.guild, newHistory);
 }
 
 export async function startScheduledDonutChats(client: Client) {
@@ -155,4 +154,67 @@ export async function startScheduledDonutChats(client: Client) {
   scheduled.forEach(async (r) => {
     await startDonutChat(client, r);
   });
+}
+
+function createHeuristicGrouping(
+  u: string[],
+  prevMatching: string[][][],
+  tries: number
+): string[][] {
+  let score: number = Number.MAX_SAFE_INTEGER;
+  let bestGroups: string[][] = [];
+
+  for (let i = 0; i < tries; i++) {
+    const groups = createGrouping(u);
+    const newScore = calculateGroupingScore(prevMatching, groups);
+    if (newScore < score) {
+      score = newScore;
+      bestGroups = groups;
+    }
+
+    if (newScore == 0) {
+      break; // if we find a perfect grouping, we can stop early
+    }
+  }
+
+  return bestGroups;
+}
+
+function createGrouping(u: string[]): string[][] {
+  const users = u.sort(() => Math.random() - 0.5);
+  const groups = [];
+  for (let i = 0; i < users.length - 1; i += 2) {
+    groups.push(users.slice(i, i + 2));
+  }
+  if (users.length % 2 != 0) {
+    groups[groups.length - 1].push(users[users.length - 1]);
+  }
+
+  return groups;
+}
+
+function calculateGroupingScore(
+  prevMatching: string[][][],
+  proposed: string[][]
+): number {
+  let score = 0;
+  prevMatching.forEach((week, i) => {
+    week.forEach((prevGroup) => {
+      proposed.forEach((proposedGroup) => {
+        // check if all users in the proposed group were in the previous group
+        if (proposedGroup.every((user) => prevGroup.includes(user))) {
+          // if so, add the age weighting to the score
+          const weeksAgo = prevMatching.length - i;
+          score += getAgeWeighting(weeksAgo);
+        }
+      });
+    });
+  });
+
+  return score;
+}
+
+function getAgeWeighting(weeksAgo: number): number {
+  // 1^1.3 in order to weigh closer chats more
+  return weeksAgo ** -1.3;
 }
