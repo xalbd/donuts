@@ -20,6 +20,7 @@ export function parseRecord(res: any): Record {
     threads: JSON.parse(res.threads) ?? [],
     completed: JSON.parse(res.completed) ?? [],
     history: JSON.parse(res.history) ?? [],
+    paused: res.paused ?? 0,
   };
 }
 
@@ -89,11 +90,20 @@ export function setHistory(guildId: string, history: string[][][]) {
   query.run({ $h: JSON.stringify(history), $g: guildId });
 }
 
+export function setPaused(guildId: string, paused: boolean) {
+  const query = db.query(`
+    UPDATE info
+    SET paused = $p
+    WHERE guild = $g`);
+  query.run({ $p: paused ? 1 : 0, $g: guildId });
+}
+
 export function getScheduledServers(): Record[] {
   const query = db.query(`
     SELECT * 
     FROM info
     WHERE next_chat IS NOT NULL AND channel IS NOT NULL
+      AND paused != 1
       AND unixepoch() > unixepoch(next_chat)`);
 
   const res = query.all();

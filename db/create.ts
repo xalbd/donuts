@@ -11,6 +11,7 @@ const create = db.query(
    next_chat TEXT,
    threads TEXT NOT NULL DEFAULT "[]",
    completed TEXT NOT NULL DEFAULT "[]",
-   history TEXT NOT NULL DEFAULT "[]");`
+   history TEXT NOT NULL DEFAULT "[]"
+   paused INTEGER NOT NULL DEFAULT 0);`
 );
 create.run();

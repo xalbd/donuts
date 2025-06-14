@@ -7,4 +7,5 @@ export interface Record {
   threads: string[];
   completed: string[];
   history: string[][][]; // participants per group; groups per week
+  paused: number;
 }

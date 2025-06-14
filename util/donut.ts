@@ -130,14 +130,16 @@ export async function startDonutChat(client: Client, r: Record) {
   if (
     r.next_chat &&
     r.timezone &&
-    DateTime.fromISO(r.next_chat ?? 0) < DateTime.now()
+    DateTime.fromISO(r.next_chat, { zone: r.timezone }) < DateTime.now()
   ) {
-    setNextChat(
-      r.guild,
-      DateTime.fromISO(r.next_chat, { zone: r.timezone })
-        .plus({ days: 7 })
-        .toISO() ?? ""
-    );
+    let next_schedule = DateTime.fromISO(r.next_chat, {
+      zone: r.timezone,
+    }).plus({ days: 7 });
+    while (DateTime.now().diff(next_schedule).as("days") > 7) {
+      next_schedule = next_schedule.plus({ days: 7 });
+    }
+
+    setNextChat(r.guild, next_schedule.toISO() ?? "");
   }
 
   setThreads(r.guild, threads);
