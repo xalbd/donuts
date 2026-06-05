@@ -20,6 +20,22 @@ export async function startDonutChat(client: Client, r: Record) {
     return;
   }
 
+  // update next chat time and keep track of what threads were used
+  if (
+    r.next_chat &&
+    r.timezone &&
+    DateTime.fromISO(r.next_chat, { zone: r.timezone }) < DateTime.now()
+  ) {
+    let next_schedule = DateTime.fromISO(r.next_chat, {
+      zone: r.timezone,
+    }).plus({ days: 7 });
+    while (DateTime.now().diff(next_schedule).as("days") > 7) {
+      next_schedule = next_schedule.plus({ days: 7 });
+    }
+
+    setNextChat(r.guild, next_schedule.toISO() ?? "");
+  }
+
   const channel = client.channels.cache.get(r.channel) as TextChannel;
 
   // send some statistics about last week if anything happened
@@ -124,22 +140,6 @@ export async function startDonutChat(client: Client, r: Record) {
       })
       .setColor("Blue");
     await thread.send({ embeds: [introductionEmbed] });
-  }
-
-  // update next chat time and keep track of what threads were used
-  if (
-    r.next_chat &&
-    r.timezone &&
-    DateTime.fromISO(r.next_chat, { zone: r.timezone }) < DateTime.now()
-  ) {
-    let next_schedule = DateTime.fromISO(r.next_chat, {
-      zone: r.timezone,
-    }).plus({ days: 7 });
-    while (DateTime.now().diff(next_schedule).as("days") > 7) {
-      next_schedule = next_schedule.plus({ days: 7 });
-    }
-
-    setNextChat(r.guild, next_schedule.toISO() ?? "");
   }
 
   setThreads(r.guild, threads);
