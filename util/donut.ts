@@ -3,6 +3,8 @@ import {
   Client,
   TextChannel,
   ChannelType,
+  DiscordAPIError,
+  RESTJSONErrorCodes,
   ThreadAutoArchiveDuration,
 } from "discord.js";
 import {
@@ -11,9 +13,33 @@ import {
   setHistory,
   setNextChat,
   setThreads,
+  setUsers,
 } from "../db/queries";
 import { DateTime } from "luxon";
 import type { Record } from "../interfaces/Record";
+import { randomIcebreaker } from "./icebreakers";
+
+// Everyone in users who is still in the server. People who left are dropped from the list for good, so they're never
+// paired again (their partner would get a thread with no one in it). Any other error keeps them, to be safe.
+export async function currentMembers(channel: TextChannel, users: string[]): Promise<string[]> {
+  const present: string[] = [];
+  for (const user of users) {
+    try {
+      await channel.guild.members.fetch(user);
+      present.push(user);
+    } catch (error) {
+      const gone =
+        error instanceof DiscordAPIError &&
+        (error.code === RESTJSONErrorCodes.UnknownMember || error.code === RESTJSONErrorCodes.UnknownUser);
+      if (gone) {
+        console.log("creating chats: dropping a user who left the server: ", user);
+      } else {
+        present.push(user);
+      }
+    }
+  }
+  return present;
+}
 
 export async function startDonutChat(client: Client, r: Record) {
   if (r.channel == null) {
@@ -57,7 +83,12 @@ export async function startDonutChat(client: Client, r: Record) {
     channel.send({ embeds: [finishedEmbed] });
   }
 
-  if (r.users.length < 2) {
+  const users = await currentMembers(channel, r.users);
+  if (users.length !== r.users.length) {
+    setUsers(r.guild, users);
+  }
+
+  if (users.length < 2) {
     const notEnoughEmbed = new EmbedBuilder()
       .setTitle("A donut chat was scheduled but not enough people joined.")
       .setDescription(
@@ -87,7 +118,7 @@ export async function startDonutChat(client: Client, r: Record) {
 
   // create a grouping by trying 100 times and picking the best one
   // this is really brute but probably fine for now
-  const groups = createHeuristicGrouping(r.users, r.history, 100);
+  const groups = createHeuristicGrouping(users, r.history, 100);
 
   const threads: string[] = [];
   for (const group of groups) {
@@ -97,7 +128,7 @@ export async function startDonutChat(client: Client, r: Record) {
       autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
       type: ChannelType.PrivateThread,
     });
-    group.forEach(async (u) => {
+    for (const u of group) {
       try {
         await thread.members.add(u);
       } catch {
@@ -106,7 +137,7 @@ export async function startDonutChat(client: Client, r: Record) {
           u
         );
       }
-    });
+    }
     threads.push(thread.id);
     await thread.join();
 
@@ -127,7 +158,7 @@ export async function startDonutChat(client: Client, r: Record) {
         },
         {
           name: "What should we talk about?",
-          value: "Insert icebreaker here...",
+          value: randomIcebreaker(),
         },
         {
           name: "We chatted! What do I do?",
