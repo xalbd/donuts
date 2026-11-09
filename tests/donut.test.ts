@@ -1,3 +1,4 @@
+import "../db/create"; // the table the tests use, in this folder's data.sqlite
 import { expect, test } from "bun:test";
 import { DiscordAPIError, RESTJSONErrorCodes } from "discord.js";
 import { currentMembers } from "../util/donut";
